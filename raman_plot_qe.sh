@@ -2,7 +2,7 @@
 #
 # raman_plot_qe.sh
 # 
-# Ver 0.1
+# Ver 0.1.1
 #
 # Description
 # Plot Raman espectrum with points from Quantum Espresso calculation using lorentzian function in gnuplot.
@@ -41,11 +41,17 @@ Plot only sum lorentzian function and name plot file 'ATD_data.ps' and FWHM=5
   exit 
 fi
 
+########################################################################################################################
+
 plot_number=1
 extension="ps"
 FWHM=5
 plot_title="Plot"
 
+#Laser used
+line_laser=2491.9
+
+########################################################################################################################
 
 for i in "$@"
 do
@@ -150,6 +156,12 @@ fi
 
 ######################################################################################################################
 
+raman_freq=( `awk '{if($5 != 0.0) printf("%f ",$2)}' "$filedat"`)
+raman_ampl=( `awk '{if($5 != 0.0) printf("%f ",$5)}' "$filedat"`)
+
+num_modes=${#raman_freq[*]}
+
+######################################################################################################################
 cp $filedat $folderOutPut/.
 
 echo "Do You want create plot files? (Y[es] or N[o])"
@@ -189,14 +201,15 @@ stats datafile using 2:5 name "dat" nooutput
 
 #Array dimesion
 count=int(dat_records)
+
 #Array data
-freq = system("awk '{if(\$5 != 0.0) printf(\"%f \",\$2)}' " .datafile)
-ampl = system("awk '{if(\$5 != 0.0) printf(\"%f \",\$5)}' " .datafile)
+freq = "${raman_freq[@]}"
+ampl = "${raman_ampl[@]}"
 
 #######################################################################################################################
 #Experimenal Correction - Absolut Intesity Convertion to Relative Intesity
 #Laser line
-lline=2491.9
+lline=$line_laser
 I(f,a)=1.0e-12*((lline-f)**4)*a/f
 #######################################################################################################################
 
@@ -257,14 +270,15 @@ stats datafile using 2:5 name "dat" nooutput
 
 #Array dimesion
 count=int(dat_records)
+
 #Array data
-freq = system("awk '{if(\$5 != 0.0) printf(\"%f \",\$2)}' " .datafile)
-ampl = system("awk '{if(\$5 != 0.0) printf(\"%f \",\$5)}' " .datafile)
+freq = "${raman_freq[@]}"
+ampl = "${raman_ampl[@]}"
 
 #######################################################################################################################
 #Experimenal Correction - Absolut Intesity Convertion to Relative Intesity
 #Laser line
-lline=2491.9
+lline=$line_laser
 I(f,a)=1.0e-12*((lline-f)**4)*a/f
 #######################################################################################################################
 
@@ -391,7 +405,7 @@ unset ytics
 set yrange [-.01:1.01]
 
 set output "$fileplot-modes.$extension"
-plot "$fileplot-modes.dat" w l lw 2 title "Raman Simulation"
+plot for [i=0:$num_modes - 2] "$fileplot-modes.dat" index i w l lw 2 title ""
 
 reset
 
@@ -428,7 +442,7 @@ unset ytics
 set yrange [-.01:1.01]
 
 set output "$fileplot-sum-modes.$extension"
-plot "$fileplot-sum.dat" w l lw 2 title "Raman Simulation", plot "$fileplot-modes.dat" w l lw 2 title "Raman Simulation modes"
+plot "$fileplot-sum.dat" w l lw 2 title "Raman Simulation", for [i=0:$num_modes - 2]" $fileplot-modes.dat" index i w l lw 2 title ""
 
 reset
 
